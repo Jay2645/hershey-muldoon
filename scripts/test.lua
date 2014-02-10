@@ -1,4 +1,5 @@
-local bruce
+require 'statemachine'
+local sam
 local states =
 {
 	hello =
@@ -9,7 +10,7 @@ local states =
 			hi = "howareyou"
 		},
 		response = "Listen, can you get my flowerpot?",
-		func = function() bruce:SetAquireGoal("flowerpot","Player") end
+		func = function() sam:SetAquireGoal("flowerpot","Player") end
 	},
 	howareyou = 
 	{
@@ -25,35 +26,28 @@ local states =
 }
 local current
 
-local function allowstates(character, state)
-	current = states[state]
-	character.state = main:CreateState(state)
-	for key,value in pairs(current.stateTransitions) do
-		character.state:AddAllowedState(value)
-	end
-end
-
 local function addplayers(room)
-	bruce = room:AddCharacter("Bruce")
-	allowstates(bruce, "hello")
+	sam = room:AddCharacter("Sam")
+	addstates("sam", states)
+	current = allowstates(sam, "hello")
 end
 
 local function onenter(room)
 	if(current == states.hello) then
-		bruce:Say("Oh, hello there, mate.")
-	elseif(bruce:CheckGoal()) then
-		bruce:Say("Oh, fantastic. You found my flowerpot.")
+		sam:Say("Oh, hello there, mate.")
+	elseif(sam:CheckGoal()) then
+		sam:Say("Oh, fantastic. You found my flowerpot.")
 		main:GameOver("You won!")
 	end
 end
 
 local function onspeak(speech)
-	for key,value in pairs(current.stateTransitions) do
-		if string.find(speech,key) and bruce.state:IsAllowedState(value) then
-			bruce:Say(current.response)
-			current.func()
-			if current then
-				allowstates(bruce, value)
+	if current then
+		for key,value in pairs(current.stateTransitions) do
+			if string.find(speech,key) and sam.state:IsAllowedState(value) then
+				sam:Say(current.response)
+				current.func()
+				current = allowstates(sam, value)				
 			end
 		end
 	end
@@ -67,4 +61,3 @@ end
 start:BindMessageFunction(addplayers,"onroominit")
 start:BindMessageFunction(onenter,"onroomprint")
 player:BindMessageFunction(onspeak,"oncharacterspeak")
-main:AddCommand("testing", "Tests the Lua messaging system.", test)
